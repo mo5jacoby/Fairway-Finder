@@ -1,0 +1,1029 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fairway — Rate Golf Courses</title>
+<style>
+  :root {
+    --green: #2d6a4f; --green-light: #40916c; --green-pale: #d8f3dc;
+    --green-faint: #f0faf2; --gold: #e9c46a; --gold-dark: #c9a227;
+    --text: #1a1a1a; --text-muted: #6b7280; --text-light: #9ca3af;
+    --border: #e5e7eb; --white: #fff; --bg: #f7f9f7; --red: #ef4444;
+    --shadow: 0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+    --shadow-hover: 0 4px 12px rgba(0,0,0,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);max-width:430px;margin:0 auto;min-height:100vh;overflow-x:hidden}
+
+  /* Header */
+  .header{background:var(--white);padding:16px 20px 12px;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border)}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .logo{font-size:22px;font-weight:800;color:var(--green);letter-spacing:-.5px;display:flex;align-items:center;gap:6px}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green-light));display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+  .search-bar{display:flex;align-items:center;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:8px 14px;gap:8px;transition:border-color .2s}
+  .search-bar:focus-within{border-color:var(--green-light)}
+  .search-bar input{background:none;border:none;outline:none;font-size:14px;color:var(--text);width:100%}
+  .search-bar input::placeholder{color:var(--text-light)}
+
+  /* Nav */
+  .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--white);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;background:none;border:none;cursor:pointer;color:var(--text-light);font-size:10px;font-weight:500;transition:color .2s}
+  .nav-btn .ni{font-size:22px;line-height:1}
+  .nav-btn.active{color:var(--green)}
+
+  /* Content */
+  .content{padding:16px 16px 90px}
+  .tab{display:none}.tab.active{display:block}
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .section-title{font-size:16px;font-weight:700}
+
+  /* Course card */
+  .course-card{background:var(--white);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:12px;cursor:pointer;transition:box-shadow .2s,transform .15s}
+  .course-card:hover{box-shadow:var(--shadow-hover);transform:translateY(-1px)}
+  .course-img{height:160px;position:relative;overflow:hidden;background:#1b4332}
+  .course-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
+  .course-card:hover .course-img img{transform:scale(1.04)}
+  .img-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.55) 0%,rgba(0,0,0,.1) 50%,transparent 100%)}
+  .course-badges{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+  .badge{background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;backdrop-filter:blur(4px)}
+  .badge-type{background:rgba(45,106,79,.85)}
+  .score-bubble{position:absolute;top:10px;right:10px;background:var(--gold);color:#7a5c00;font-size:15px;font-weight:800;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .course-body{padding:12px 14px 14px}
+  .course-name{font-size:15px;font-weight:700;margin-bottom:3px}
+  .course-meta{font-size:12px;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .course-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .tag{background:var(--green-faint);color:var(--green);font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}
+  .course-actions{display:flex;gap:8px}
+  .btn-rate{flex:1;background:var(--green);color:#fff;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+  .btn-rate:hover{background:var(--green-light)}
+  .btn-rate.rated{background:#e8f5ec;color:var(--green)}
+  .btn-icon{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:16px;cursor:pointer;transition:all .2s;line-height:1}
+  .btn-icon:hover{background:var(--green-pale);border-color:var(--green-light)}
+  .btn-icon.active{background:var(--green-pale);border-color:var(--green)}
+
+  /* Trending */
+  .h-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 8px}
+  .h-scroll::-webkit-scrollbar{display:none}
+  .mini-card{min-width:155px;background:var(--white);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);cursor:pointer;flex-shrink:0;transition:box-shadow .2s}
+  .mini-card:hover{box-shadow:var(--shadow-hover)}
+  .mini-img{height:95px;position:relative;overflow:hidden;background:#1b4332}
+  .mini-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .mini-img-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.5) 0%,transparent 60%)}
+  .mini-body{padding:8px 10px 10px}
+  .mini-name{font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mini-loc{font-size:11px;color:var(--text-muted)}
+  .mini-score{position:absolute;bottom:6px;right:6px;background:var(--gold);color:#7a5c00;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px}
+
+  /* My Rounds */
+  .stats-row{display:flex;gap:10px;margin-bottom:12px}
+  .stat-card{flex:1;background:var(--white);border-radius:14px;padding:14px;text-align:center;box-shadow:var(--shadow)}
+  .stat-num{font-size:26px;font-weight:800;color:var(--green);line-height:1;margin-bottom:4px}
+  .stat-label{font-size:11px;color:var(--text-muted);font-weight:500}
+  .hcp-card{background:linear-gradient(135deg,var(--green),var(--green-light));border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:0 4px 16px rgba(45,106,79,.25);display:flex;align-items:center;justify-content:space-between}
+  .hcp-left{color:#fff}
+  .hcp-label{font-size:11px;font-weight:600;opacity:.8;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+  .hcp-num{font-size:48px;font-weight:900;line-height:1;letter-spacing:-1px}
+  .hcp-sub{font-size:12px;opacity:.7;margin-top:2px}
+  .hcp-right{text-align:right;color:rgba(255,255,255,.85)}
+  .hcp-trend{font-size:28px;margin-bottom:4px}
+  .hcp-rounds{font-size:11px;opacity:.7}
+  .rank-item{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .2s}
+  .rank-item:hover{box-shadow:var(--shadow-hover)}
+  .rank-num{font-size:18px;font-weight:800;color:var(--text-muted);width:28px;text-align:center;flex-shrink:0}
+  .rank-num.top{color:var(--gold-dark)}
+  .rank-img{width:52px;height:52px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#1b4332}
+  .rank-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .rank-info{flex:1;min-width:0}
+  .rank-name{font-size:14px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-meta{font-size:12px;color:var(--text-muted)}
+  .rank-score{background:var(--gold);color:#7a5c00;font-size:16px;font-weight:800;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+  /* Bucket */
+  .bucket-item{display:flex;align-items:center;gap:12px;background:var(--white);border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
+  .bucket-img{width:60px;height:60px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#1b4332}
+  .bucket-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .bucket-info{flex:1;min-width:0}
+  .bucket-name{font-size:14px;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bucket-loc{font-size:12px;color:var(--text-muted);margin-bottom:5px}
+  .bucket-remove{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-light);padding:4px;line-height:1;flex-shrink:0}
+  .bucket-remove:hover{color:var(--red)}
+
+  /* Friends */
+  .activity-item{display:flex;gap:12px;background:var(--white);border-radius:14px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow)}
+  .friend-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;flex-shrink:0}
+  .activity-body{flex:1;min-width:0}
+  .activity-text{font-size:13px;line-height:1.4;margin-bottom:4px}
+  .activity-text strong{font-weight:700}
+  .activity-time{font-size:11px;color:var(--text-light)}
+  .activity-course{display:flex;align-items:center;gap:10px;margin-top:10px;background:var(--bg);border-radius:10px;padding:8px 10px}
+  .act-img{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#1b4332}
+  .act-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .act-name{font-size:12px;font-weight:700}
+  .act-score{margin-left:auto;background:var(--gold);color:#7a5c00;font-size:13px;font-weight:800;padding:3px 8px;border-radius:8px;flex-shrink:0}
+  .friend-pill{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+  .fp-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700}
+
+  /* Empty */
+  .empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+  .empty-icon{font-size:48px;margin-bottom:12px}
+  .empty-title{font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)}
+  .empty-text{font-size:13px;line-height:1.5}
+
+  /* Modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--white);border-radius:24px 24px 0 0;padding:20px 20px 40px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;animation:slideUp .3s ease}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+  .modal-hero{height:120px;border-radius:14px;overflow:hidden;margin-bottom:16px;background:#1b4332}
+  .modal-hero img{width:100%;height:100%;object-fit:cover;display:block}
+  .modal-title{font-size:18px;font-weight:800;margin-bottom:4px}
+  .modal-sub{font-size:13px;color:var(--text-muted);margin-bottom:24px}
+  .rl{font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+  .score-display{text-align:center;margin-bottom:8px}
+  .score-num{font-size:56px;font-weight:900;color:var(--green);line-height:1}
+  .score-lbl{font-size:13px;color:var(--text-muted);margin-top:4px}
+  .score-slider{width:100%;-webkit-appearance:none;height:6px;border-radius:3px;outline:none;margin-bottom:8px;cursor:pointer}
+  .score-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--green);box-shadow:0 2px 6px rgba(45,106,79,.4);cursor:pointer}
+  .score-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:24px}
+  .vibe-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:24px}
+  .vibe-btn{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 4px;cursor:pointer;text-align:center;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .vibe-btn:hover{border-color:var(--green-light);background:var(--green-faint)}
+  .vibe-btn.selected{border-color:var(--green);background:var(--green-pale)}
+  .vibe-emoji{font-size:22px;line-height:1}
+  .vibe-text{font-size:10px;color:var(--text-muted);font-weight:500}
+  .notes-input{width:100%;border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;font-size:14px;font-family:inherit;resize:none;outline:none;color:var(--text);transition:border-color .2s;margin-bottom:20px}
+  .notes-input:focus{border-color:var(--green-light)}
+  .notes-input::placeholder{color:var(--text-light)}
+  .btn-submit{width:100%;background:var(--green);color:#fff;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
+  .btn-submit:hover{background:var(--green-light)}
+
+  /* Filters */
+  .filter-row{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 12px}
+  .filter-row::-webkit-scrollbar{display:none}
+  .filter-chip{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--text-muted);transition:all .15s;flex-shrink:0}
+  .filter-chip.active{background:var(--green);border-color:var(--green);color:#fff}
+  .divider{height:1px;background:var(--border);margin:16px 0}
+  .region-hdr{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px;padding-left:2px}
+
+  /* Toast */
+  .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.85);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:300;white-space:nowrap;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Photo loading shimmer */
+  .img-loading{background:linear-gradient(90deg,#e8f5ec 25%,#d8f3dc 50%,#e8f5ec 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* Rank badge on cards */
+  .rank-badge{position:absolute;top:10px;right:10px;background:var(--gold);color:#7a5c00;font-size:13px;font-weight:800;padding:4px 10px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+
+  /* Log Round Modal */
+  .hole-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:20px}
+  .hole-btn{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;text-align:center;color:var(--text-muted);transition:all .15s}
+  .hole-btn:hover{border-color:var(--green-light);color:var(--green)}
+  .hole-btn.selected{background:var(--green);border-color:var(--green);color:#fff}
+  .score-input-row{display:flex;align-items:center;gap:12px;background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:20px;transition:border-color .2s}
+  .score-input-row:focus-within{border-color:var(--green-light)}
+  .score-input-label{font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap}
+  .score-input{background:none;border:none;outline:none;font-size:28px;font-weight:800;color:var(--green);width:100%;text-align:right;-moz-appearance:textfield}
+  .score-input::-webkit-inner-spin-button,.score-input::-webkit-outer-spin-button{-webkit-appearance:none}
+  .score-input::placeholder{color:var(--text-light);font-weight:400;font-size:18px}
+
+  /* Compare Modal */
+  .compare-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:20px}
+  .compare-overlay.open{display:flex}
+  .compare-modal{background:var(--white);border-radius:24px;padding:20px;width:100%;max-width:390px;animation:slideUp .3s ease}
+  .cmp-header{text-align:center;margin-bottom:16px}
+  .cmp-title{font-size:18px;font-weight:800;margin-bottom:4px}
+  .cmp-sub{font-size:12px;color:var(--text-muted);font-weight:500}
+  .cmp-question{font-size:13px;font-weight:600;color:var(--text-muted);text-align:center;margin:12px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+  .cmp-card{border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative;box-shadow:var(--shadow)}
+  .cmp-card:hover{transform:scale(1.02);box-shadow:var(--shadow-hover)}
+  .cmp-card:active{transform:scale(.98)}
+  .cmp-img{height:130px;overflow:hidden;background:#1b4332;position:relative}
+  .cmp-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .cmp-img-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6) 0%,transparent 60%)}
+  .cmp-info{position:absolute;bottom:0;left:0;right:0;padding:10px 12px;color:#fff}
+  .cmp-name{font-size:14px;font-weight:800;line-height:1.2}
+  .cmp-loc{font-size:11px;opacity:.85}
+  .cmp-vs{text-align:center;font-size:11px;font-weight:800;color:var(--text-light);letter-spacing:1px;padding:8px 0}
+  .cmp-progress-bar{height:4px;background:var(--border);border-radius:2px;margin-top:16px;overflow:hidden}
+  .cmp-progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s ease}
+  .skip-btn{width:100%;background:none;border:none;color:var(--text-light);font-size:12px;padding:12px;cursor:pointer;margin-top:4px}
+  .skip-btn:hover{color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">⛳ Fairway</div>
+    <div class="avatar">MJ</div>
+  </div>
+  <div class="search-bar">
+    <span style="color:var(--text-muted);font-size:15px">🔍</span>
+    <input type="text" placeholder="Search courses, cities, tags…" id="searchInput" oninput="applyFilterAndSearch()">
+  </div>
+</div>
+
+<div class="content">
+  <!-- DISCOVER -->
+  <div class="tab active" id="tab-discover">
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setFilter('All',this)">All</button>
+      <button class="filter-chip" onclick="setFilter('Bay Area',this)">🌉 Bay Area</button>
+      <button class="filter-chip" onclick="setFilter('San Francisco',this)">SF</button>
+      <button class="filter-chip" onclick="setFilter('East Bay',this)">East Bay</button>
+      <button class="filter-chip" onclick="setFilter('South Bay',this)">South Bay</button>
+      <button class="filter-chip" onclick="setFilter('Peninsula',this)">Peninsula</button>
+      <button class="filter-chip" onclick="setFilter('Marin',this)">Marin</button>
+      <button class="filter-chip" onclick="setFilter('Napa',this)">Napa</button>
+      <button class="filter-chip" onclick="setFilter('Public',this)">Public</button>
+      <button class="filter-chip" onclick="setFilter('Private',this)">Private</button>
+      <button class="filter-chip" onclick="setFilter('Resort',this)">Resort</button>
+      <button class="filter-chip" onclick="setFilter('Top Rated',this)">⭐ Top Rated</button>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Trending Near You</span>
+    </div>
+    <div class="h-scroll" id="trendingScroll"></div>
+    <div class="divider"></div>
+    <div class="section-header">
+      <span class="section-title">Explore Courses</span>
+      <span style="font-size:12px;color:var(--text-muted)" id="courseCount"></span>
+    </div>
+    <div id="courseList"></div>
+  </div>
+
+  <!-- MY ROUNDS -->
+  <div class="tab" id="tab-rounds">
+    <div class="hcp-card">
+      <div class="hcp-left">
+        <div class="hcp-label">Handicap Index</div>
+        <div class="hcp-num" id="hcpNum">—</div>
+        <div class="hcp-sub" id="hcpSub">Log rounds to calculate</div>
+      </div>
+      <div class="hcp-right">
+        <div class="hcp-trend" id="hcpEmoji">⛳</div>
+        <div class="hcp-rounds" id="hcpRoundsUsed"></div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="statRounds">0</div><div class="stat-label">Courses Ranked</div></div>
+      <div class="stat-card"><div class="stat-num" id="statAvg">—</div><div class="stat-label">Avg Strokes</div></div>
+      <div class="stat-card"><div class="stat-num" id="statBest">—</div><div class="stat-label">Best Round</div></div>
+    </div>
+    <div class="section-header"><span class="section-title">My Rankings</span></div>
+    <div id="rankList"></div>
+    <div id="roundsEmpty" class="empty-state" style="display:none">
+      <div class="empty-icon">🏌️</div><div class="empty-title">No rounds yet</div>
+      <div class="empty-text">Log a round on any course and rank it head-to-head against your other favorites — Beli style.</div>
+    </div>
+  </div>
+
+  <!-- WANT TO PLAY -->
+  <div class="tab" id="tab-bucket">
+    <div class="section-header">
+      <span class="section-title">Bucket List</span>
+      <span style="font-size:13px;color:var(--text-muted)" id="bucketCount">0 courses</span>
+    </div>
+    <div id="bucketList"></div>
+    <div id="bucketEmpty" class="empty-state" style="display:none">
+      <div class="empty-icon">🗺️</div><div class="empty-title">Your bucket list is empty</div>
+      <div class="empty-text">Tap 🔖 on any course to save it for later.</div>
+    </div>
+  </div>
+
+  <!-- FRIENDS -->
+  <div class="tab" id="tab-friends">
+    <div class="h-scroll" style="margin-bottom:16px" id="friendsRow"></div>
+    <div class="section-header"><span class="section-title">Recent Activity</span></div>
+    <div id="activityFeed"></div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('discover',this)"><span class="ni">🔭</span>Discover</button>
+  <button class="nav-btn" onclick="switchTab('rounds',this)"><span class="ni">📋</span>My Rounds</button>
+  <button class="nav-btn" onclick="switchTab('bucket',this)"><span class="ni">🔖</span>Want to Play</button>
+  <button class="nav-btn" onclick="switchTab('friends',this)"><span class="ni">👥</span>Friends</button>
+</div>
+
+<!-- Log Round Modal -->
+<div class="modal-overlay" id="ratingModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-hero"><img id="modalImg" src="" alt="" loading="lazy"></div>
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub" id="modalSub"></div>
+
+    <div class="rl">Strokes Played</div>
+    <div class="score-input-row">
+      <span class="score-input-label">🏌️ Score</span>
+      <input type="number" class="score-input" id="strokesInput" min="50" max="200" placeholder="e.g. 85">
+    </div>
+
+    <div class="rl">Favorite Hole</div>
+    <div class="hole-grid" id="holeGrid">
+      <!-- generated by JS -->
+    </div>
+
+    <div class="rl">Notes</div>
+    <textarea class="notes-input" id="notesInput" rows="2" placeholder="What made this round memorable?"></textarea>
+    <button class="btn-submit" id="logRoundBtn" onclick="submitLog()">Log Round ⛳</button>
+  </div>
+</div>
+
+<!-- Compare Modal -->
+<div class="compare-overlay" id="compareModal">
+  <div class="compare-modal">
+    <div class="cmp-header">
+      <div class="cmp-title">🏌️ Rank Your Round</div>
+      <div class="cmp-sub" id="cmp-progress">Comparison 1 of ~3</div>
+    </div>
+    <div class="cmp-question">Which did you prefer?</div>
+    <div class="cmp-card" id="cmp-new-card" onclick="answerComparison(true)">
+      <div class="cmp-img">
+        <img id="cmp-new-img" src="" alt="">
+        <div class="cmp-img-overlay"></div>
+        <div class="cmp-info">
+          <div class="cmp-name" id="cmp-new-name"></div>
+          <div class="cmp-loc" id="cmp-new-loc"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cmp-vs">vs</div>
+    <div class="cmp-card" id="cmp-mid-card" onclick="answerComparison(false)">
+      <div class="cmp-img">
+        <img id="cmp-mid-img" src="" alt="">
+        <div class="cmp-img-overlay"></div>
+        <div class="cmp-info">
+          <div class="cmp-name" id="cmp-mid-name"></div>
+          <div class="cmp-loc" id="cmp-mid-loc"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cmp-progress-bar"><div class="cmp-progress-fill" id="cmp-fill" style="width:0%"></div></div>
+    <button class="skip-btn" onclick="answerComparison(false)">Too close to call — roughly the same</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── PHOTO CONSTANTS ───────────────────────────────────────────────────────────
+// Course-specific GolfPass S3 photos for flagship/national courses
+const WIKI = {
+  harding:      'https://golf-pass-brightspot.s3.amazonaws.com/ee/5a/9ccd1d3a0efe9880b5ce9bb36198/1724.jpg',
+  pebble:       'https://golf-pass-brightspot.s3.amazonaws.com/f7/db/64258c89629622ebcaaba0b1e4fb/99851.jpg',
+  sharp:        'https://golf-pass-brightspot.s3.amazonaws.com/30/2b/efc4ec06919a40103d11440ab25d/93983.jpg',
+  spyglass:     'https://golf-pass-brightspot.s3.amazonaws.com/d0/70/ef2f3ccf394758b58eed1c5d81ad/103456.jpg',
+  augusta:      'https://golf-pass-brightspot.s3.amazonaws.com/2c/b5/ee647248ea336b7e1e07271bde14/13898.jpg',
+  kiawah:       'https://golf-pass-brightspot.s3.amazonaws.com/cf/a0/244794eb40c2a6462139c4efec2a/oceancourse-1920x400b.jpg',
+  bethpage:     'https://golf-pass-brightspot.s3.amazonaws.com/54/21/569ea9c76f859a36926bf8546e8e/38508.jpg',
+  pinehurst:    'https://golf-pass-brightspot.s3.amazonaws.com/71/5a/8bd25fdd2190fca1c8ebda9eca36/570.jpg',
+  presidio:     'https://golf-pass-brightspot.s3.amazonaws.com/df/da/49f3e806ae58421b99c61f514a2c/69601.jpg',
+  lincoln:      'https://golf-pass-brightspot.s3.amazonaws.com/e9/07/3b3e1287bdbc734a3ac0e8b427b2/129971.jpg',
+  shoreline:    'https://golf-pass-brightspot.s3.amazonaws.com/7f/68/528fe369f3d1d4b9f1e04c2d3e4f/97718.jpg',
+  bandon:       'https://golf-pass-brightspot.s3.amazonaws.com/0f/68/a732937bee2250f11c4fdcfea2f0/67658.jpg',
+  sawgrass:     'https://golf-pass-brightspot.s3.amazonaws.com/b9/09/f741edf649fcac59b74f312df7ed/hole17-sawgrass.jpg',
+  santa_teresa: 'https://golf-pass-brightspot.s3.amazonaws.com/80/2f/858a81d31e7901881748f035e371/89946.jpg',
+};
+
+// Real course-specific photos sourced from GolfPass S3 and course websites
+const P = {
+  // 9-hole city parks
+  city9:       'https://golf-pass-brightspot.s3.amazonaws.com/27/9d/09e9c1ba16fc9bd87f545a21f2a4/129969.jpg',  // Golden Gate Park GC
+  hilly9:      'https://golf-pass-brightspot.s3.amazonaws.com/98/81/fb4fe6c4944a0920f277eaa33853/93985.jpg',  // Gleneagles GC
+  // Coastal / ocean
+  hmb_ocean:   'https://golf-pass-brightspot.s3.amazonaws.com/d4/9c/1bbd002d72db38b58edd674d7fef/92381.jpg', // HMB Ocean Course
+  hmb_old:     'https://golf-pass-brightspot.s3.amazonaws.com/ec/66/f655701caf7d2299d7a5582935b5/92380.jpg', // HMB Old Course
+  coastal_gc:  'https://golf-pass-brightspot.s3.amazonaws.com/d8/e2/072996d8e51f851b0c47a1cd93a4/93463.jpg',  // Corica Park South
+  coastal_air: 'https://golf-pass-brightspot.s3.amazonaws.com/fd/e5/b6abc5e0af6761cc5c6194ebc5dc/91388.jpg',  // Corica Park North
+  ocean_hills: 'https://golf-pass-brightspot.s3.amazonaws.com/c3/05/0431a958cff95e706e5987b8c4c9/39231.jpg', // Poppy Hills GC
+  links_flag:  'https://golf-pass-brightspot.s3.amazonaws.com/5a/54/ef26ac175fac59c8c09f581c8a2f/130378.jpg',// Monarch Bay / Tony Lema
+  bay_view:    'https://golf-pass-brightspot.s3.amazonaws.com/95/3f/13d88f709f48417d454d65bb48ae/91647.jpg', // Peacock Gap
+  // Wooded / forested
+  wooded:      'https://golf-pass-brightspot.s3.amazonaws.com/99/3a/f3149ae6df74d2b72ae6aaf83559/97170.jpg', // Boundary Oak
+  pine:        'https://golf-pass-brightspot.s3.amazonaws.com/05/29/3e553c0a50f5c46f8ff795a92f52/91499.jpg', // Tilden Park
+  // Open / hilly
+  hills:       'https://golf-pass-brightspot.s3.amazonaws.com/43/d9/167f96c2ad8f650e42e85eb213c5/127588.jpg',// Poppy Ridge
+  preserve:    'https://golf-pass-brightspot.s3.amazonaws.com/27/12/62d40b51b6a5d9235b10095235ef/95832.jpg', // Callippe Preserve
+  dramatic:    'https://golf-pass-brightspot.s3.amazonaws.com/c3/b2/1c9739482eb1490af11dd18dc6f4/92397.jpg', // Lake Chabot
+  canyon:      'https://golf-pass-brightspot.s3.amazonaws.com/c7/77/d929c70bcc516036adb813008a70/81923.jpg', // Franklin Canyon
+  // Resort / exclusive
+  aerial:      'https://golf-pass-brightspot.s3.amazonaws.com/9f/c1/ac7b8c069f49caa7903eb666b34d/95695.jpg',  // CordeValle
+  reservoir:   'https://golf-pass-brightspot.s3.amazonaws.com/dc/f5/f6b71bb79d4eb75a39e679644b14/97135.jpg', // Crystal Springs
+  resort_fw:   'https://golf-pass-brightspot.s3.amazonaws.com/6f/a2/cf79195855ca9ff893bf3bf44ec5/26049.jpg', // Coyote Creek
+  // Municipal / public
+  muni_flat:   'https://golf-pass-brightspot.s3.amazonaws.com/8c/0f/a681659a682e617f638c41db2c0d/95827.jpg', // Los Lagos
+  walking:     'https://golf-pass-brightspot.s3.amazonaws.com/9b/6a/f5fbf5812c0b52b4781424857234/110337.jpg',// Poplar Creek
+  classic:     'https://golf-pass-brightspot.s3.amazonaws.com/9b/1a/e03852e43ee026714b1f16e9b5b5/9475.jpg',  // Stanford GC
+  // Unique course character
+  sandbelt:    'https://golf-pass-brightspot.s3.amazonaws.com/36/da/95ea3fed8d7d5e3591b9ba9a402a/16894.jpg', // Las Positas
+  cinnabar:    'https://golf-pass-brightspot.s3.amazonaws.com/a5/c0/08ce2da8504ce6163a8738685365/91700.jpg', // Cinnabar Hills
+  summit:      'https://golf-pass-brightspot.s3.amazonaws.com/a5/c0/08ce2da8504ce6163a8738685365/91700.jpg', // Summitpointe (similar hills)
+  marin_v:     'https://golf-pass-brightspot.s3.amazonaws.com/d3/b7/94de6f03b8bd843295b472e46540/129846.jpg',// Indian Valley
+  marincc:     'https://golf-pass-brightspot.s3.amazonaws.com/ae/b9/99a67b2bc47f86be36f37befc60f/33421.jpg', // Marin Country Club
+  roosterrun:  'https://golf-pass-brightspot.s3.amazonaws.com/de/60/c41058c985c94c26eb4de14906f0/108347.jpg',// Rooster Run
+  millvalley:  'https://golf-pass-brightspot.s3.amazonaws.com/a5/b5/d8522866e0a01ae6f423cab97752/108651.jpg',// Mill Valley GC
+  pasatiempo:  'https://golf-pass-brightspot.s3.amazonaws.com/97/c0/b3d0013bf0150c37bff47ba08d9c/21819.jpg', // Pasatiempo
+  // Napa / Wine Country
+  vineyard_n:  'https://golf-pass-brightspot.s3.amazonaws.com/62/78/d323bf7819fee48f950004d96898/97495.jpg', // Silverado North
+  vineyard_s:  'https://golf-pass-brightspot.s3.amazonaws.com/97/fc/dd7b951f82b521ea926eca19b5e8/97494.jpg', // Silverado South
+  meadow:      'https://golf-pass-brightspot.s3.amazonaws.com/c0/f9/52245f5e4e7f46daceba9342e470/128685.jpg',// Eagle Vines
+  lush:        'https://golf-pass-brightspot.s3.amazonaws.com/15/dd/4f59adfaed3cc3a3ba0e2e152a1e/10157.jpg', // Chardonnay GC
+  // Monterey / Pebble Beach / Santa Cruz
+  spanish_bay: 'https://golf-pass-brightspot.s3.amazonaws.com/d7/90/1c37b7542fe646b0924c4109b3d4/97723.jpg', // Links at Spanish Bay
+  pac_grove:   'https://golf-pass-brightspot.s3.amazonaws.com/8d/a7/1d645a100b7d6042d431db751b6d/6859.jpg',  // Pacific Grove Golf Links
+  bayonet_gc:  'https://golf-pass-brightspot.s3.amazonaws.com/84/c4/8646a22185feab1db9c701cb6e85/40248.jpg', // The Bayonet
+  black_horse: 'https://golf-pass-brightspot.s3.amazonaws.com/d1/2c/f2abd5586e60b9bcf8a175f9a6c9/3379.jpg',  // Black Horse
+  delaveaga:   'https://golf-pass-brightspot.s3.amazonaws.com/9a/65/6cace3428dbbc519f7bb0fcda75b/53817.jpg', // DeLaveaga GC
+  del_monte:   'https://golf-pass-brightspot.s3.amazonaws.com/e6/ca/a5715c10f083a53a648cc589ed23/130951.jpg',// Del Monte GC
+  quail_lodge: 'https://golf-pass-brightspot.s3.amazonaws.com/b0/15/8610895970a9f9630b8c2d9be29f/91066.jpg', // Quail Lodge
+  cypress_pt:  'https://golf-pass-brightspot.s3.amazonaws.com/c6/a7/17fdc2b4ca5d99458ff1345f8a8c/65070.jpg', // Cypress Point Club
+  // North Bay
+  adobe_creek: 'https://golf-pass-brightspot.s3.amazonaws.com/81/12/095c160e578c23bee2ff311fcc81/70124.jpg', // Adobe Creek Petaluma
+  bennett_v:   'https://golf-pass-brightspot.s3.amazonaws.com/ff/c5/523b38bdcfdc5037311b65bd8692/97545.jpg', // Bennett Valley GC
+  // Sacramento
+  haggin_mac:  'https://golf-pass-brightspot.s3.amazonaws.com/be/6b/4fb450201086a8ebc1cb05ec7621/129949.jpg',// Haggin Oaks MacKenzie
+  ancil_h:     'https://golf-pass-brightspot.s3.amazonaws.com/56/9d/56cc392953d239bde3082367b10a/91520.jpg',  // Ancil Hoffman
+  wildhawk:    'https://golf-pass-brightspot.s3.amazonaws.com/a1/b4/8eafde91adb6e125e51aae491697/104684.jpg', // Wildhawk GC
+};
+
+// ── COURSES ───────────────────────────────────────────────────────────────────
+const courses = [
+  // ── San Francisco ──────────────────────────────────────────────────────────
+  {id:101, name:'TPC Harding Park',       loc:'San Francisco, CA', region:'San Francisco', type:'Municipal', holes:18, par:72, price:'$$$',  rating:9.0, photo:WIKI.harding,      wikiTitle:'TPC Harding Park',           tags:['Championship','PGA Tour','Lake Merced']},
+  {id:102, name:'Presidio Golf Course',   loc:'San Francisco, CA', region:'San Francisco', type:'Public',    holes:18, par:72, price:'$$',   rating:8.3, photo:WIKI.presidio,     wikiTitle:'Presidio Golf Course',       tags:['National Park','Historic','Wooded']},
+  {id:103, name:'Lincoln Park GC',        loc:'San Francisco, CA', region:'San Francisco', type:'Municipal', holes:18, par:68, price:'$',    rating:7.2, photo:WIKI.lincoln,                                              tags:['Ocean Views','Historic','Budget']},
+  {id:104, name:'Sharp Park Golf Course', loc:'Pacifica, CA',      region:'San Francisco', type:'Municipal', holes:18, par:72, price:'$',    rating:6.8, photo:WIKI.sharp,        wikiTitle:'Sharp Park Golf Course',     tags:['Coastal','MacKenzie Design','Value']},
+  {id:105, name:'Golden Gate Park GC',    loc:'San Francisco, CA', region:'San Francisco', type:'Municipal', holes:9,  par:27, price:'$',    rating:6.5, photo:P.city9,                                                   tags:['9 Holes','Beginner','Budget']},
+  {id:106, name:'Gleneagles Golf Course', loc:'San Francisco, CA', region:'San Francisco', type:'Municipal', holes:9,  par:36, price:'$',    rating:6.7, photo:P.hilly9,                                                  tags:['9 Holes','Hidden Gem','Hilly']},
+
+  // ── East Bay ───────────────────────────────────────────────────────────────
+  {id:201, name:'Corica Park South',      loc:'Alameda, CA',       region:'East Bay',      type:'Municipal', holes:18, par:71, price:'$$',   rating:8.5, photo:P.coastal_gc,    wikiTitle:'Corica Park',                tags:['Sandbelt','Redesigned','Fescue']},
+  {id:202, name:'Corica Park North',      loc:'Alameda, CA',       region:'East Bay',      type:'Municipal', holes:18, par:71, price:'$$',   rating:7.5, photo:P.coastal_air,                                             tags:['Muni','Value','Beginner Friendly']},
+  {id:203, name:'Boundary Oak GC',        loc:'Walnut Creek, CA',  region:'East Bay',      type:'Public',    holes:18, par:72, price:'$$',   rating:7.8, photo:P.wooded,                                                  tags:['Tree-lined','Classic','East Bay']},
+  {id:204, name:'Tilden Park GC',         loc:'Berkeley, CA',      region:'East Bay',      type:'Municipal', holes:18, par:70, price:'$',    rating:7.2, photo:P.pine,          wikiTitle:'Tilden Park Golf Course',    tags:['Park Setting','Wooded','Views']},
+  {id:205, name:'Poppy Ridge GC',         loc:'Livermore, CA',     region:'East Bay',      type:'Public',    holes:27, par:72, price:'$$',   rating:8.0, photo:P.hills,                                                   tags:['27 Holes','Wine Country','Open']},
+  {id:206, name:'Callippe Preserve GC',   loc:'Pleasanton, CA',    region:'East Bay',      type:'Public',    holes:18, par:72, price:'$$',   rating:7.9, photo:P.preserve,                                                tags:['Preserve Views','Challenging','Open']},
+  {id:207, name:'Lake Chabot GC',         loc:'Oakland, CA',       region:'East Bay',      type:'Municipal', holes:18, par:71, price:'$',    rating:7.0, photo:P.dramatic,                                                tags:['Lake Views','Budget','Hilly']},
+  {id:208, name:'Las Positas GC',         loc:'Livermore, CA',     region:'East Bay',      type:'Municipal', holes:18, par:71, price:'$',    rating:7.0, photo:P.sandbelt,                                                tags:['Value','Muni','Beginner']},
+  {id:209, name:'Franklin Canyon GC',     loc:'Hercules, CA',      region:'East Bay',      type:'Public',    holes:18, par:72, price:'$$',   rating:7.4, photo:P.canyon,                                                  tags:['Canyon Views','Challenging','Hilly']},
+  {id:210, name:'Monarch Bay Golf Club',  loc:'San Leandro, CA',   region:'East Bay',      type:'Public',    holes:18, par:72, price:'$$',   rating:7.3, photo:P.links_flag,                                              tags:['Bay Views','Windswept','Links-style']},
+
+  // ── South Bay ──────────────────────────────────────────────────────────────
+  {id:301, name:'Cinnabar Hills GC',      loc:'San Jose, CA',      region:'South Bay',     type:'Public',    holes:27, par:72, price:'$$$',  rating:8.4, photo:P.cinnabar,                                               tags:['27 Holes','Scenic','Mountain']},
+  {id:302, name:'Shoreline Golf Links',   loc:'Mountain View, CA', region:'South Bay',     type:'Public',    holes:18, par:72, price:'$$',   rating:7.5, photo:WIKI.shoreline,                                           tags:['Flat','Bay Views','Beginner Friendly']},
+  {id:303, name:'Santa Teresa GC',        loc:'San Jose, CA',      region:'South Bay',     type:'Municipal', holes:18, par:71, price:'$',    rating:7.0, photo:WIKI.santa_teresa,                                        tags:['Hillside','Value','Classic']},
+  {id:304, name:'Summitpointe GC',        loc:'Milpitas, CA',      region:'South Bay',     type:'Public',    holes:18, par:72, price:'$$',   rating:7.3, photo:P.summit,                                                  tags:['Hillside','Views','Challenging']},
+  {id:305, name:'Coyote Creek GC',        loc:'Morgan Hill, CA',   region:'South Bay',     type:'Resort',    holes:36, par:72, price:'$$$',  rating:8.1, photo:P.resort_fw,                                              tags:['36 Holes','Resort','Open']},
+  {id:306, name:'CordeValle Golf Club',   loc:'San Martin, CA',    region:'South Bay',     type:'Resort',    holes:18, par:71, price:'$$$$', rating:8.9, photo:P.aerial,        wikiTitle:'CordeValle',                 tags:['Exclusive','PGA Tour','Resort']},
+  {id:307, name:'Los Lagos GC',           loc:'San Jose, CA',      region:'South Bay',     type:'Municipal', holes:18, par:72, price:'$',    rating:6.8, photo:P.muni_flat,                                               tags:['Muni','Value','Flat']},
+
+  // ── Peninsula ──────────────────────────────────────────────────────────────
+  {id:401, name:'Half Moon Bay Ocean',    loc:'Half Moon Bay, CA', region:'Peninsula',     type:'Resort',    holes:18, par:72, price:'$$$',  rating:9.1, photo:P.hmb_ocean,                                              tags:['Coastal','Ocean Views','Links-style']},
+  {id:402, name:'Half Moon Bay Old',      loc:'Half Moon Bay, CA', region:'Peninsula',     type:'Resort',    holes:18, par:72, price:'$$$',  rating:8.6, photo:P.hmb_old,                                                tags:['Classic','Tree-lined','Resort']},
+  {id:403, name:'Crystal Springs GC',    loc:'Burlingame, CA',    region:'Peninsula',     type:'Public',    holes:18, par:72, price:'$$',   rating:8.0, photo:P.reservoir,                                              tags:['Reservoir Views','Scenic','Wooded']},
+  {id:404, name:'Poplar Creek GC',       loc:'San Mateo, CA',     region:'Peninsula',     type:'Municipal', holes:18, par:72, price:'$',    rating:7.1, photo:P.walking,                                                tags:['Flat','Popular','Value']},
+  {id:405, name:'Stanford Golf Course',  loc:'Stanford, CA',      region:'Peninsula',     type:'Public',    holes:18, par:70, price:'$$',   rating:7.8, photo:P.classic,       wikiTitle:'Stanford Golf Course',       tags:['Tree-lined','Classic','Semi-Private']},
+  {id:406, name:'Pasatiempo GC',         loc:'Santa Cruz, CA',    region:'Peninsula',     type:'Public',    holes:18, par:71, price:'$$$',  rating:8.8, photo:P.pasatiempo,    wikiTitle:'Pasatiempo Golf Club',       tags:['MacKenzie Design','Classic','Must-Play']},
+
+  // ── Marin / North Bay ──────────────────────────────────────────────────────
+  {id:501, name:'Peacock Gap Golf Club',  loc:'San Rafael, CA',    region:'Marin',         type:'Public',    holes:18, par:71, price:'$$',   rating:7.4, photo:P.bay_view,                                               tags:['Bay Views','Flat','Fun']},
+  {id:502, name:'Indian Valley GC',       loc:'Novato, CA',        region:'Marin',         type:'Public',    holes:18, par:72, price:'$$',   rating:7.6, photo:P.marin_v,                                                tags:['Wooded','Valley','Classic']},
+  {id:503, name:'Marin Country Club',     loc:'Novato, CA',        region:'Marin',         type:'Private',   holes:18, par:72, price:'$$$$', rating:8.5, photo:P.marincc,                                                tags:['Private','Exclusive','Classic']},
+  {id:504, name:'Rooster Run GC',         loc:'Petaluma, CA',      region:'Marin',         type:'Public',    holes:18, par:72, price:'$$',   rating:7.5, photo:P.roosterrun,                                             tags:['Open','Affordable','Fun']},
+  {id:505, name:'Mill Valley GC',         loc:'Mill Valley, CA',   region:'Marin',         type:'Municipal', holes:9,  par:35, price:'$',    rating:6.9, photo:P.millvalley,                                             tags:['9 Holes','Scenic','Budget']},
+
+  // ── Napa / Wine Country ────────────────────────────────────────────────────
+  {id:601, name:'Silverado North',        loc:'Napa, CA',          region:'Napa',          type:'Resort',    holes:18, par:72, price:'$$$',  rating:8.4, photo:P.vineyard_n,    wikiTitle:'Silverado Resort',           tags:['Resort','Wine Country','Championship']},
+  {id:602, name:'Silverado South',        loc:'Napa, CA',          region:'Napa',          type:'Resort',    holes:18, par:72, price:'$$$',  rating:8.2, photo:P.vineyard_s,                                             tags:['Resort','Scenic','Tree-lined']},
+  {id:603, name:'Eagle Vines GC',         loc:'Napa, CA',          region:'Napa',          type:'Public',    holes:18, par:72, price:'$$',   rating:7.7, photo:P.meadow,                                                 tags:['Wine Country','Affordable','Open']},
+  {id:604, name:'Chardonnay Golf Club',   loc:'Napa, CA',          region:'Napa',          type:'Public',    holes:18, par:72, price:'$$',   rating:7.5, photo:P.lush,                                                   tags:['Vineyards','Scenic','Value']},
+
+  // ── Pebble Beach ───────────────────────────────────────────────────────────
+  {id:701, name:'Pebble Beach Golf Links',loc:'Pebble Beach, CA',  region:'Pebble Beach',  type:'Resort',    holes:18, par:72, price:'$$$$', rating:9.8, photo:WIKI.pebble,     wikiTitle:'Pebble Beach Golf Links',    tags:['Iconic','Coastal','US Open']},
+  {id:702, name:'Spyglass Hill GC',       loc:'Pebble Beach, CA',  region:'Pebble Beach',  type:'Resort',    holes:18, par:72, price:'$$$$', rating:9.2, photo:WIKI.spyglass,   wikiTitle:'Spyglass Hill Golf Course',  tags:['Forest','Scenic','Championship']},
+  {id:703, name:'Poppy Hills GC',         loc:'Pebble Beach, CA',  region:'Pebble Beach',  type:'Public',    holes:18, par:71, price:'$$$',  rating:8.2, photo:P.ocean_hills,   wikiTitle:'Poppy Hills Golf Course',    tags:['Forest','Classic','Value']},
+
+  // ── National Icons ─────────────────────────────────────────────────────────
+  {id:1,   name:'Augusta National',       loc:'Augusta, GA',       region:'National',      type:'Private',   holes:18, par:72, price:'$$$$', rating:9.9, photo:WIKI.augusta,    wikiTitle:'Augusta National Golf Club', tags:['Championship','Historic','Masters']},
+  {id:2,   name:'Bandon Dunes',           loc:'Bandon, OR',        region:'National',      type:'Resort',    holes:18, par:72, price:'$$$',  rating:9.5, photo:WIKI.bandon,     wikiTitle:'Bandon Dunes Golf Resort',   tags:['Links','Walking','Coastal']},
+  {id:3,   name:'Pinehurst No. 2',        loc:'Pinehurst, NC',     region:'National',      type:'Resort',    holes:18, par:70, price:'$$$',  rating:9.4, photo:WIKI.pinehurst,  wikiTitle:'Pinehurst No. 2',            tags:['Historic','US Open','Classic']},
+  {id:4,   name:'Bethpage Black',         loc:'Farmingdale, NY',   region:'National',      type:'Public',    holes:18, par:71, price:'$$',   rating:9.1, photo:WIKI.bethpage,   wikiTitle:'Bethpage State Park',        tags:['Public','Difficult','Value']},
+  {id:5,   name:'TPC Sawgrass',           loc:'Ponte Vedra, FL',   region:'National',      type:'Private',   holes:18, par:72, price:'$$$$', rating:9.2, photo:WIKI.sawgrass,   wikiTitle:'TPC Sawgrass',               tags:['Stadium','Players','Island 17']},
+  {id:6,   name:'Kiawah Island Ocean',    loc:'Kiawah Island, SC', region:'National',      type:'Resort',    holes:18, par:72, price:'$$$$', rating:9.3, photo:WIKI.kiawah,     wikiTitle:'Kiawah Island Golf Resort',  tags:['Links','Wind','Ryder Cup']},
+
+  // ── Pebble Beach / Carmel Expansion (800s) ─────────────────────────────────
+  {id:801, name:'The Links at Spanish Bay',    loc:'Pebble Beach, CA',    region:'Pebble Beach',  type:'Resort',      holes:18, par:72, price:'$$$$', rating:9.0, photo:P.spanish_bay,                                               tags:['Links','Coastal','Pebble Beach Resort']},
+  {id:802, name:'Cypress Point Club',          loc:'Pebble Beach, CA',    region:'Pebble Beach',  type:'Private',     holes:18, par:72, price:'$$$$', rating:9.7, photo:P.cypress_pt,                                                tags:['MacKenzie Design','Ultra Private','Top-5 World']},
+  {id:803, name:'MPCC Shore Course',           loc:'Pebble Beach, CA',    region:'Pebble Beach',  type:'Private',     holes:18, par:71, price:'$$$$', rating:9.3, photo:P.classic,                                                   tags:['Private','Coastal','Top-Ranked']},
+  {id:804, name:'MPCC Dunes Course',           loc:'Pebble Beach, CA',    region:'Pebble Beach',  type:'Private',     holes:18, par:72, price:'$$$$', rating:9.1, photo:P.classic,                                                   tags:['Private','Dunes','Prestigious']},
+  {id:805, name:'Tehama Golf Club',            loc:'Carmel, CA',          region:'Pebble Beach',  type:'Private',     holes:18, par:72, price:'$$$$', rating:8.8, photo:P.cypress_pt,                                                tags:['Private','Clint Eastwood','Carmel']},
+
+  // ── Monterey / Carmel / Santa Cruz (900s) ──────────────────────────────────
+  {id:901, name:'Pacific Grove Golf Links',    loc:'Pacific Grove, CA',   region:'Monterey',      type:'Municipal',   holes:18, par:70, price:'$',    rating:8.0, photo:P.pac_grove,                                                 tags:['Coastal','Municipal','Budget Gem']},
+  {id:902, name:'The Bayonet',                 loc:'Seaside, CA',         region:'Monterey',      type:'Public',      holes:18, par:72, price:'$$',   rating:8.3, photo:P.bayonet_gc,                                               tags:['Military History','Challenging','Classic']},
+  {id:903, name:'Black Horse',                 loc:'Seaside, CA',         region:'Monterey',      type:'Public',      holes:18, par:72, price:'$$',   rating:8.1, photo:P.black_horse,                                              tags:['Military History','Open','Scenic Views']},
+  {id:904, name:'Del Monte Golf Course',       loc:'Monterey, CA',        region:'Monterey',      type:'Resort',      holes:18, par:72, price:'$$$',  rating:8.0, photo:P.del_monte,    wikiTitle:'Del Monte Golf Course',         tags:['Oldest West Coast','Historic','1897']},
+  {id:905, name:'Monterey Pines GC',           loc:'Monterey, CA',        region:'Monterey',      type:'Public',      holes:18, par:69, price:'$',    rating:7.3, photo:P.pine,                                                      tags:['Value','Wooded','Short']},
+  {id:906, name:'Quail Lodge Golf Club',       loc:'Carmel, CA',          region:'Monterey',      type:'Resort',      holes:18, par:71, price:'$$$',  rating:8.5, photo:P.quail_lodge,                                              tags:['Resort','Carmel Valley','Scenic']},
+  {id:907, name:'Carmel Valley Ranch GC',      loc:'Carmel Valley, CA',   region:'Monterey',      type:'Resort',      holes:18, par:70, price:'$$$$', rating:8.4, photo:P.quail_lodge,                                              tags:['Resort','Pete Dye','Valley Views']},
+  {id:908, name:'DeLaveaga Golf Course',       loc:'Santa Cruz, CA',      region:'Monterey',      type:'Municipal',   holes:18, par:70, price:'$',    rating:7.3, photo:P.delaveaga,                                                 tags:['Hilly','Tree-lined','Municipal']},
+  {id:909, name:'Seascape Golf Club',          loc:'Aptos, CA',           region:'Monterey',      type:'Public',      holes:18, par:72, price:'$$',   rating:7.6, photo:P.wooded,                                                   tags:['Wooded','Classic','Santa Cruz']},
+  {id:910, name:'Rancho Cañada - East',        loc:'Carmel Valley, CA',   region:'Monterey',      type:'Public',      holes:18, par:71, price:'$$',   rating:7.4, photo:P.marin_v,                                                  tags:['Valley','Classic','Value']},
+  {id:911, name:'Rancho Cañada - West',        loc:'Carmel Valley, CA',   region:'Monterey',      type:'Public',      holes:18, par:71, price:'$$',   rating:7.2, photo:P.marin_v,                                                  tags:['Valley','Shorter','Beginner Friendly']},
+  {id:912, name:'Pajaro Valley GC',            loc:'Royal Oaks, CA',      region:'Monterey',      type:'Public',      holes:18, par:72, price:'$$',   rating:7.0, photo:P.muni_flat,                                                tags:['Open','Flat','Value']},
+
+  // ── SF Private Clubs & Peninsula Extras (1000s) ────────────────────────────
+  {id:1001, name:'Olympic Club - Lake',        loc:'San Francisco, CA',   region:'San Francisco', type:'Private',     holes:18, par:71, price:'$$$$', rating:9.5, photo:P.classic,      wikiTitle:'Olympic Club',                  tags:['US Open','Top-Ranked','Tillinghast']},
+  {id:1002, name:'Olympic Club - Ocean',       loc:'San Francisco, CA',   region:'San Francisco', type:'Private',     holes:18, par:72, price:'$$$$', rating:8.7, photo:P.classic,                                                   tags:['Private','Wooded','Historic']},
+  {id:1003, name:'Lake Merced Golf Club',      loc:'San Francisco, CA',   region:'San Francisco', type:'Private',     holes:18, par:72, price:'$$$$', rating:8.8, photo:P.classic,                                                   tags:['Private','Tree-lined','Lake Views']},
+  {id:1004, name:'San Francisco Golf Club',    loc:'San Francisco, CA',   region:'San Francisco', type:'Private',     holes:18, par:71, price:'$$$$', rating:9.4, photo:P.classic,      wikiTitle:'San Francisco Golf Club',       tags:['Historic','Top-Ranked','MacKenzie']},
+  {id:1005, name:'Palo Alto Municipal GC',     loc:'Palo Alto, CA',       region:'Peninsula',     type:'Municipal',   holes:18, par:72, price:'$',    rating:6.9, photo:P.muni_flat,                                                tags:['Flat','Muni','Beginner Friendly']},
+  {id:1006, name:'Peninsula Golf & CC',        loc:'San Mateo, CA',       region:'Peninsula',     type:'Private',     holes:18, par:72, price:'$$$$', rating:8.6, photo:P.classic,                                                   tags:['Private','Classic','Wooded']},
+  {id:1007, name:'Sharon Heights GC',          loc:'Menlo Park, CA',      region:'Peninsula',     type:'Private',     holes:18, par:72, price:'$$$$', rating:8.5, photo:P.classic,                                                   tags:['Private','Flat','Classic']},
+  {id:1008, name:'Menlo Country Club',         loc:'Atherton, CA',        region:'Peninsula',     type:'Private',     holes:18, par:72, price:'$$$$', rating:8.4, photo:P.classic,                                                   tags:['Private','Classic','Exclusive']},
+  {id:1009, name:'Sequoia Country Club',       loc:'Redwood City, CA',    region:'Peninsula',     type:'Private',     holes:18, par:72, price:'$$$$', rating:8.3, photo:P.classic,                                                   tags:['Private','Scenic','Classic']},
+  {id:1010, name:'De Anza Country Club',       loc:'San Jose, CA',        region:'South Bay',     type:'Private',     holes:18, par:72, price:'$$$$', rating:8.2, photo:P.classic,                                                   tags:['Private','Classic','South Bay']},
+  {id:1011, name:'Almaden Country Club',       loc:'San Jose, CA',        region:'South Bay',     type:'Private',     holes:18, par:72, price:'$$$$', rating:8.3, photo:P.wooded,                                                    tags:['Private','Tree-lined','Classic']},
+  {id:1012, name:'Palo Alto Hills GC',         loc:'Palo Alto, CA',       region:'Peninsula',     type:'Private',     holes:18, par:70, price:'$$$$', rating:8.1, photo:P.hills,                                                     tags:['Private','Hillside','Views']},
+
+  // ── East Bay Expansion (1100s) ────────────────────────────────────────────
+  {id:1101, name:'Canyon Lakes GC',            loc:'San Ramon, CA',       region:'East Bay',      type:'Public',      holes:18, par:71, price:'$$',   rating:7.7, photo:P.canyon,                                                   tags:['Canyon Views','Scenic','Challenging']},
+  {id:1102, name:'The Bridges at San Ramon',   loc:'San Ramon, CA',       region:'East Bay',      type:'Semi-Private', holes:18, par:72, price:'$$$', rating:8.0, photo:P.hills,                                                    tags:['Tom Fazio','Upscale','Open']},
+  {id:1103, name:'Diablo Country Club',        loc:'Danville, CA',        region:'East Bay',      type:'Private',     holes:18, par:71, price:'$$$$', rating:8.7, photo:P.dramatic,                                                 tags:['Mt. Diablo Views','Private','Classic']},
+  {id:1104, name:'Round Hill Country Club',    loc:'Alamo, CA',           region:'East Bay',      type:'Private',     holes:18, par:72, price:'$$$$', rating:8.4, photo:P.wooded,                                                   tags:['Private','Classic','Tree-lined']},
+  {id:1105, name:'Crow Canyon CC',             loc:'Danville, CA',        region:'East Bay',      type:'Private',     holes:18, par:72, price:'$$$$', rating:8.2, photo:P.wooded,                                                   tags:['Private','Wooded','Classic']},
+  {id:1106, name:'Orinda Country Club',        loc:'Orinda, CA',          region:'East Bay',      type:'Private',     holes:18, par:72, price:'$$$$', rating:8.5, photo:P.wooded,                                                   tags:['Private','Wooded','Scenic']},
+  {id:1107, name:'Contra Costa CC',            loc:'Pleasant Hill, CA',   region:'East Bay',      type:'Private',     holes:18, par:71, price:'$$$$', rating:8.2, photo:P.hills,                                                    tags:['Private','Classic','East Bay Hills']},
+  {id:1108, name:'Blackhawk CC - Falls',       loc:'Danville, CA',        region:'East Bay',      type:'Private',     holes:18, par:72, price:'$$$$', rating:8.3, photo:P.dramatic,                                                 tags:['Private','Waterfalls','Upscale']},
+  {id:1109, name:'Brentwood Golf Club',        loc:'Brentwood, CA',       region:'East Bay',      type:'Public',      holes:18, par:72, price:'$$',   rating:7.3, photo:P.muni_flat,                                                tags:['Open','Flat','Value']},
+  {id:1110, name:'Deer Ridge GC',              loc:'Brentwood, CA',       region:'East Bay',      type:'Public',      holes:18, par:72, price:'$$',   rating:7.5, photo:P.hills,                                                    tags:['Hills','Scenic','Value']},
+  {id:1111, name:'Discovery Bay GC',           loc:'Discovery Bay, CA',   region:'East Bay',      type:'Public',      holes:18, par:72, price:'$$',   rating:7.1, photo:P.bay_view,                                                 tags:['Delta Views','Flat','Open']},
+  {id:1112, name:'Moraga Country Club',        loc:'Moraga, CA',          region:'East Bay',      type:'Private',     holes:18, par:69, price:'$$$$', rating:7.9, photo:P.wooded,                                                   tags:['Private','Short','Canyon']},
+  {id:1113, name:'Rossmoor Golf Club',         loc:'Walnut Creek, CA',    region:'East Bay',      type:'Semi-Private', holes:18, par:67, price:'$$',  rating:7.0, photo:P.hills,                                                    tags:['Seniors','Short','Views']},
+
+  // ── Marin / North Bay / Wine Country Expansion (1200s) ────────────────────
+  {id:1201, name:'Adobe Creek Golf Course',    loc:'Petaluma, CA',        region:'Marin',         type:'Public',      holes:18, par:72, price:'$$',   rating:7.8, photo:P.adobe_creek,                                              tags:['RTJ Jr Design','Open','Fun']},
+  {id:1202, name:'Windsor Golf Club',          loc:'Windsor, CA',         region:'Marin',         type:'Public',      holes:18, par:72, price:'$$',   rating:7.4, photo:P.roosterrun,                                               tags:['Sonoma County','Open','Value']},
+  {id:1203, name:'Bennett Valley GC',          loc:'Santa Rosa, CA',      region:'Marin',         type:'Municipal',   holes:18, par:72, price:'$',    rating:7.2, photo:P.bennett_v,                                                tags:['Municipal','Classic','Value']},
+  {id:1204, name:'Foxtail GC - North',         loc:'Rohnert Park, CA',    region:'Marin',         type:'Public',      holes:18, par:72, price:'$$',   rating:7.5, photo:P.roosterrun,                                               tags:['Open','Flat','Affordable']},
+  {id:1205, name:'Foxtail GC - South',         loc:'Rohnert Park, CA',    region:'Marin',         type:'Public',      holes:18, par:72, price:'$$',   rating:7.4, photo:P.roosterrun,                                               tags:['Open','Flat','Affordable']},
+  {id:1206, name:'Fountaingrove Club',         loc:'Santa Rosa, CA',      region:'Marin',         type:'Private',     holes:18, par:72, price:'$$$$', rating:8.6, photo:P.hills,                                                    tags:['Private','Views','Championship']},
+  {id:1207, name:'Hiddenbrooke GC',            loc:'Vallejo, CA',         region:'Marin',         type:'Public',      holes:18, par:72, price:'$$',   rating:7.6, photo:P.hills,                                                    tags:['Tom Fazio','Scenic','Views']},
+  {id:1208, name:'Napa GC at Kennedy Park',    loc:'Napa, CA',            region:'Napa',          type:'Municipal',   holes:18, par:72, price:'$',    rating:7.0, photo:P.lush,                                                     tags:['Municipal','Value','Wine Country']},
+  {id:1209, name:'Links at Bodega Harbour',    loc:'Bodega Bay, CA',      region:'Marin',         type:'Public',      holes:18, par:70, price:'$$$',  rating:8.2, photo:P.bay_view,                                                 tags:['Coastal','Links-style','Ocean Views']},
+  {id:1210, name:'Oakmont Golf Club',          loc:'Santa Rosa, CA',      region:'Marin',         type:'Private',     holes:18, par:63, price:'$$',   rating:7.0, photo:P.hills,                                                    tags:['Executive','Senior Community','Scenic']},
+  {id:1211, name:'Vintners Golf Club',         loc:'Yountville, CA',      region:'Napa',          type:'Public',      holes:18, par:70, price:'$$',   rating:7.4, photo:P.meadow,                                                   tags:['Wine Country','Short','Affordable']},
+  {id:1212, name:'Napa Valley CC',             loc:'Napa, CA',            region:'Napa',          type:'Private',     holes:18, par:72, price:'$$$$', rating:8.0, photo:P.lush,                                                     tags:['Private','Classic','Wine Country']},
+
+  // ── Sacramento Valley (1300s) ─────────────────────────────────────────────
+  {id:1301, name:'Haggin Oaks - MacKenzie',    loc:'Sacramento, CA',      region:'Sacramento',    type:'Municipal',   holes:18, par:72, price:'$',    rating:7.8, photo:P.haggin_mac,                                               tags:['MacKenzie Design','Historic','Value']},
+  {id:1302, name:'Haggin Oaks - Arcade Creek', loc:'Sacramento, CA',      region:'Sacramento',    type:'Municipal',   holes:18, par:72, price:'$',    rating:7.0, photo:P.muni_flat,                                                tags:['Municipal','Tree-lined','Flat']},
+  {id:1303, name:'Ancil Hoffman GC',           loc:'Carmichael, CA',      region:'Sacramento',    type:'Municipal',   holes:18, par:72, price:'$',    rating:7.9, photo:P.ancil_h,                                                  tags:['American River','Tree-lined','Classic']},
+  {id:1304, name:'Wildhawk GC',                loc:'Sacramento, CA',      region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:7.2, photo:P.wildhawk,                                                 tags:['Open','Value','Sacramento']},
+  {id:1305, name:'Mather Golf Course',         loc:'Mather, CA',          region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:7.1, photo:P.muni_flat,                                                tags:['Air Force History','Open','Value']},
+  {id:1306, name:'Cherry Island GC',           loc:'Elverta, CA',         region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:6.9, photo:P.muni_flat,                                                tags:['Open','Flat','Budget']},
+  {id:1307, name:'Cordova Golf Course',        loc:'Sacramento, CA',      region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:7.0, photo:P.muni_flat,                                                tags:['Muni','Affordable','Tree-lined']},
+  {id:1308, name:'Teal Bend GC',               loc:'Sacramento, CA',      region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:7.3, photo:P.bay_view,                                                 tags:['American River','Scenic','Value']},
+  {id:1309, name:'Empire Ranch GC',            loc:'Folsom, CA',          region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$$',   rating:7.5, photo:P.hills,                                                    tags:['Hillside','Folsom Lake','Value']},
+  {id:1310, name:'Turkey Creek GC',            loc:'Lincoln, CA',         region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$$',   rating:7.6, photo:P.wooded,                                                   tags:['Wooded','Classic','Value']},
+  {id:1311, name:'Twelve Bridges GC',          loc:'Lincoln, CA',         region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$$',   rating:7.7, photo:P.hills,                                                    tags:['Open','Championship','Views']},
+  {id:1312, name:'Rancho Murieta CC - North',  loc:'Rancho Murieta, CA',  region:'Sacramento',    type:'Private',     holes:18, par:72, price:'$$$',  rating:8.0, photo:P.preserve,                                                 tags:['Private','Scenic','Championship']},
+  {id:1313, name:'Rancho Murieta CC - South',  loc:'Rancho Murieta, CA',  region:'Sacramento',    type:'Private',     holes:18, par:72, price:'$$$',  rating:7.9, photo:P.lush,                                                     tags:['Private','Classic','Rolling Hills']},
+  {id:1314, name:'Wildhorse GC',               loc:'Davis, CA',           region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:7.2, photo:P.muni_flat,                                                tags:['Open','Flat','Value']},
+  {id:1315, name:'Bradshaw Ranch GC',          loc:'Sacramento, CA',      region:'Sacramento',    type:'Public',      holes:18, par:72, price:'$',    rating:7.1, photo:P.hills,                                                    tags:['Rolling Hills','Value','Classic']},
+
+  // ── Sierra Foothills / Gold Country / Tahoe (1400s) ───────────────────────
+  {id:1401, name:'Darkhorse GC',               loc:'Auburn, CA',          region:'Foothills',     type:'Public',      holes:18, par:72, price:'$$',   rating:8.0, photo:P.dramatic,                                                 tags:['Dramatic','Gold Country','Challenging']},
+  {id:1402, name:'Auburn Valley CC',            loc:'Auburn, CA',          region:'Foothills',     type:'Private',     holes:18, par:71, price:'$$$',  rating:7.8, photo:P.wooded,                                                   tags:['Private','Wooded','Foothills']},
+  {id:1403, name:'Tahoe Donner GC',            loc:'Truckee, CA',         region:'Tahoe',         type:'Public',      holes:18, par:72, price:'$$',   rating:7.9, photo:P.pine,                                                     tags:['Mountain','Pine Forests','Altitude']},
+  {id:1404, name:'Coyote Moon GC',             loc:'Truckee, CA',         region:'Tahoe',         type:'Public',      holes:18, par:72, price:'$$$',  rating:8.6, photo:P.pine,                                                     tags:['Top-Ranked','Pine Forests','Must-Play']},
+  {id:1405, name:'Old Greenwood',              loc:'Truckee, CA',         region:'Tahoe',         type:'Resort',      holes:18, par:72, price:'$$$$', rating:8.8, photo:P.pine,                                                     tags:['Nicklaus Design','Resort','Mountain']},
+  {id:1406, name:'Lake Tahoe GC',              loc:'S. Lake Tahoe, CA',   region:'Tahoe',         type:'Public',      holes:18, par:71, price:'$$',   rating:7.8, photo:P.reservoir,                                                tags:['Lake Views','Mountain','Scenic']},
+  {id:1407, name:'Edgewood Tahoe',             loc:'Stateline, NV',       region:'Tahoe',         type:'Resort',      holes:18, par:72, price:'$$$$', rating:9.0, photo:P.reservoir,    wikiTitle:'Edgewood Tahoe Resort',         tags:['Lakefront','Celebrity Pro-Am','Top-Ranked']},
+  {id:1408, name:'Graeagle Meadows GC',        loc:'Graeagle, CA',        region:'Foothills',     type:'Public',      holes:18, par:72, price:'$',    rating:7.5, photo:P.meadow,                                                   tags:['Meadow','Peaceful','Affordable']},
+  {id:1409, name:'Plumas Pines CC',            loc:'Portola, CA',         region:'Foothills',     type:'Public',      holes:18, par:72, price:'$',    rating:7.3, photo:P.pine,                                                     tags:['Mountain','Wooded','Hidden Gem']},
+  {id:1410, name:'Nakoma Golf Club',           loc:'Graeagle, CA',        region:'Foothills',     type:'Public',      holes:18, par:72, price:'$$',   rating:7.6, photo:P.wooded,                                                   tags:['Mountain Meadow','Resort','Scenic']},
+
+  // ── North Coast (1500s) ────────────────────────────────────────────────────
+  {id:1501, name:'Sea Ranch Golf Links',       loc:'The Sea Ranch, CA',   region:'Marin',         type:'Public',      holes:9,  par:36, price:'$$',   rating:7.5, photo:P.bay_view,                                                 tags:['9 Holes','Coastal','Remote Gem']},
+];
+
+// ── FRIENDS ───────────────────────────────────────────────────────────────────
+const friends = [
+  {name:'Tyler S.',initials:'TS',color:'#e76f51'},
+  {name:'Kara M.', initials:'KM',color:'#264653'},
+  {name:'Jake R.', initials:'JR',color:'#8338ec'},
+  {name:'Priya N.',initials:'PN',color:'#f4a261'},
+  {name:'Chris W.',initials:'CW',color:'#219ebc'},
+];
+const activity = [
+  {friend:0,courseId:101,score:78, rank:1, favoriteHole:18, time:'2h ago',  note:'Walked where Morikawa won the PGA. Bucket list check.'},
+  {friend:2,courseId:201,score:82, rank:1, favoriteHole:9,  time:'4h ago',  note:'Best muni in NorCal, full stop. South Course is special.'},
+  {friend:1,courseId:401,score:91, rank:1, favoriteHole:14, time:'1d ago',  note:'Play it at sunset. Ocean Course at HMB is breathtaking.'},
+  {friend:3,courseId:306,score:76, rank:1, favoriteHole:7,  time:'1d ago',  note:'CordeValle is worth every penny. Stunning.'},
+  {friend:4,courseId:601,score:88, rank:2, favoriteHole:11, time:'2d ago',  note:'Silverado after wine tasting = perfect NorCal day.'},
+  {friend:0,courseId:702,score:95, rank:1, favoriteHole:5,  time:'3d ago',  note:'Spyglass forest holes are magic. A must-play.'},
+];
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let myRounds = {};   // courseId -> {score, favoriteHole, notes, date}
+let myRanking = [];  // ordered courseId array: index 0 = most preferred (Beli-style)
+let myBucket = new Set();
+let currentFilter = 'All';
+let activeCourseId = null;
+let compareState = null;  // {courseId, lo, hi, totalSteps, stepsDone}
+let selectedHole = null;
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildHoleGrid();
+  renderAll();
+  document.getElementById('ratingModal').addEventListener('click', e => {
+    if (e.target.id === 'ratingModal') closeModal();
+  });
+  loadWikiPhotos();
+});
+
+function buildHoleGrid() {
+  const grid = document.getElementById('holeGrid');
+  grid.innerHTML = Array.from({length:18}, (_,i) => {
+    const n = i + 1;
+    return `<button class="hole-btn" onclick="selectHole(${n},this)">${n}</button>`;
+  }).join('');
+}
+
+function renderAll() {
+  renderTrending(); renderCourseList(); renderFriends(); renderActivity(); renderRounds(); renderBucket();
+}
+
+// ── WIKIPEDIA DYNAMIC PHOTO LOADER ────────────────────────────────────────────
+async function loadWikiPhotos() {
+  const wikiCourses = courses.filter(c => c.wikiTitle);
+  for (let i = 0; i < wikiCourses.length; i += 10) {
+    const batch = wikiCourses.slice(i, i + 10);
+    const titles = batch.map(c => encodeURIComponent(c.wikiTitle)).join('|');
+    try {
+      const r = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${titles}&prop=pageimages&format=json&pithumbsize=800&origin=*`);
+      const data = await r.json();
+      let updated = false;
+      for (const page of Object.values(data.query.pages)) {
+        if (page.thumbnail) {
+          const course = courses.find(c => c.wikiTitle === page.title);
+          // Only update if the current photo is not already a Wikipedia photo
+          if (course && !course.photo.includes('brightspot')) {
+            course.photo = page.thumbnail.source;
+            updated = true;
+          }
+        }
+      }
+      if (updated) {
+        // Update img tags in the DOM without full re-render
+        courses.forEach(c => {
+          document.querySelectorAll(`[data-course-id="${c.id}"] img`).forEach(img => {
+            if (img.src !== c.photo) img.src = c.photo;
+          });
+        });
+      }
+    } catch(e) { /* offline — keep fallback photos */ }
+  }
+}
+
+// ── BELI RANKING ──────────────────────────────────────────────────────────────
+function submitLog() {
+  const score = parseInt(document.getElementById('strokesInput').value) || null;
+  const notes = document.getElementById('notesInput').value.trim();
+  myRounds[activeCourseId] = {
+    score,
+    favoriteHole: selectedHole,
+    notes,
+    date: new Date().toLocaleDateString()
+  };
+  const alreadyRanked = myRanking.includes(activeCourseId);
+  closeModal();
+  if (alreadyRanked) {
+    renderAll();
+    showToast('Round updated! ⛳');
+  } else {
+    startComparison(activeCourseId);
+  }
+}
+
+function startComparison(courseId) {
+  if (myRanking.length === 0) {
+    myRanking.push(courseId);
+    renderAll();
+    showToast('First course logged — you\'re ranked #1! 🏆');
+    return;
+  }
+  compareState = {
+    courseId,
+    lo: 0,
+    hi: myRanking.length,
+    totalSteps: Math.ceil(Math.log2(myRanking.length + 1)),
+    stepsDone: 0
+  };
+  showNextComparison();
+}
+
+function showNextComparison() {
+  const {courseId, lo, hi, totalSteps, stepsDone} = compareState;
+  if (lo >= hi) {
+    myRanking.splice(lo, 0, courseId);
+    document.getElementById('compareModal').classList.remove('open');
+    renderAll();
+    const pos = lo + 1;
+    showToast(`Ranked #${pos} on your list! ${pos === 1 ? '🏆' : '⛳'}`);
+    compareState = null;
+    return;
+  }
+  const mid = Math.floor((lo + hi) / 2);
+  const newC = courses.find(c => c.id === courseId);
+  const midC = courses.find(c => c.id === myRanking[mid]);
+  document.getElementById('cmp-new-img').src = newC.photo;
+  document.getElementById('cmp-new-name').textContent = newC.name;
+  document.getElementById('cmp-new-loc').textContent = newC.loc;
+  document.getElementById('cmp-mid-img').src = midC.photo;
+  document.getElementById('cmp-mid-name').textContent = midC.name;
+  document.getElementById('cmp-mid-loc').textContent = midC.loc;
+  const pct = Math.round((stepsDone / totalSteps) * 100);
+  document.getElementById('cmp-fill').style.width = pct + '%';
+  document.getElementById('cmp-progress').textContent =
+    `Question ${stepsDone + 1} of ~${totalSteps}`;
+  document.getElementById('compareModal').classList.add('open');
+}
+
+function answerComparison(newIsBetter) {
+  const mid = Math.floor((compareState.lo + compareState.hi) / 2);
+  if (newIsBetter) {
+    compareState.hi = mid;      // insert before mid (new is better)
+  } else {
+    compareState.lo = mid + 1;  // insert after mid (new is worse)
+  }
+  compareState.stepsDone++;
+  showNextComparison();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function courseImg(c, cls='') {
+  return `<img src="${c.photo}" alt="${c.name}" loading="lazy" onerror="this.style.display='none'" class="${cls}">`;
+}
+
+function renderTrending() {
+  const top = [...courses].filter(c=>c.region!=='National'||c.rating>=9.5).sort((a,b)=>b.rating-a.rating).slice(0,8);
+  document.getElementById('trendingScroll').innerHTML = top.map(c=>`
+    <div class="mini-card" data-course-id="${c.id}" onclick="openModal(${c.id})">
+      <div class="mini-img img-loading">${courseImg(c)}<div class="mini-img-overlay"></div><div class="mini-score">${c.rating.toFixed(1)}</div></div>
+      <div class="mini-body"><div class="mini-name">${c.name}</div><div class="mini-loc">${c.loc}</div></div>
+    </div>`).join('');
+}
+
+function getFilteredList() {
+  const BAY = ['San Francisco','East Bay','South Bay','Peninsula','Marin','Napa','Pebble Beach'];
+  let list = [...courses];
+  if      (currentFilter==='Bay Area')      list = list.filter(c=>BAY.includes(c.region));
+  else if (currentFilter==='San Francisco') list = list.filter(c=>c.region==='San Francisco');
+  else if (currentFilter==='East Bay')      list = list.filter(c=>c.region==='East Bay');
+  else if (currentFilter==='South Bay')     list = list.filter(c=>c.region==='South Bay');
+  else if (currentFilter==='Peninsula')     list = list.filter(c=>c.region==='Peninsula');
+  else if (currentFilter==='Marin')         list = list.filter(c=>c.region==='Marin');
+  else if (currentFilter==='Napa')          list = list.filter(c=>c.region==='Napa');
+  else if (currentFilter==='Public')        list = list.filter(c=>c.type==='Public'||c.type==='Municipal');
+  else if (currentFilter==='Private')       list = list.filter(c=>c.type==='Private');
+  else if (currentFilter==='Resort')        list = list.filter(c=>c.type==='Resort');
+  else if (currentFilter==='Top Rated')     list = list.filter(c=>c.rating>=8.8);
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  if (q) list = list.filter(c=>c.name.toLowerCase().includes(q)||c.loc.toLowerCase().includes(q)||c.region.toLowerCase().includes(q)||c.tags.some(t=>t.toLowerCase().includes(q)));
+  return list;
+}
+
+function renderCourseList(list=null) {
+  if (!list) list = getFilteredList();
+  document.getElementById('courseCount').textContent = list.length + ' courses';
+  const el = document.getElementById('courseList');
+  if (!list.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No courses found</div><div class="empty-text">Try a different search or filter.</div></div>`; return; }
+  const showRegions = !document.getElementById('searchInput').value && (currentFilter==='All'||currentFilter==='Bay Area');
+  let html='', lastRegion='';
+  for (const c of list) {
+    if (showRegions && c.region!==lastRegion && c.region!=='National') { html+=`<div class="region-hdr">📍 ${c.region}</div>`; lastRegion=c.region; }
+    const round=myRounds[c.id], ranked=myRanking.includes(c.id), bookmarked=myBucket.has(c.id);
+    const rankPos = ranked ? myRanking.indexOf(c.id) + 1 : null;
+    html+=`
+    <div class="course-card" data-course-id="${c.id}">
+      <div class="course-img img-loading">
+        ${courseImg(c)}
+        <div class="img-overlay"></div>
+        <div class="course-badges">
+          <span class="badge">${c.holes}H · Par ${c.par}</span>
+          <span class="badge badge-type">${c.type} · ${c.price}</span>
+        </div>
+        ${rankPos ? `<div class="rank-badge">#${rankPos} for you</div>` : `<div class="score-bubble">${c.rating.toFixed(1)}</div>`}
+      </div>
+      <div class="course-body">
+        <div class="course-name">${c.name}</div>
+        <div class="course-meta">📍 ${c.loc}${round?.score ? ` · 🏌️ Shot ${round.score}` : ''}${round?.favoriteHole ? ` · ❤️ Hole ${round.favoriteHole}` : ''}</div>
+        <div class="course-tags">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="course-actions">
+          <button class="btn-rate ${ranked?'rated':''}" onclick="openModal(${c.id})">${ranked?'✓ Update Round':'+ Log a Round'}</button>
+          <button class="btn-icon ${bookmarked?'active':''}" onclick="toggleBucket(${c.id},event)">🔖</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  el.innerHTML = html;
+  // Remove shimmer once images load
+  el.querySelectorAll('.img-loading img').forEach(img => {
+    img.addEventListener('load', () => img.closest('.img-loading')?.classList.remove('img-loading'), {once:true});
+  });
+}
+
+function calcHandicap() {
+  // WHS-style: differential = score - par (simplified, no slope/CR data needed)
+  // Take best 8 of last 20, multiply by 0.96
+  const entries = Object.entries(myRounds)
+    .filter(([,r]) => r.score)
+    .map(([id, r]) => {
+      const c = courses.find(x => x.id === parseInt(id));
+      return c ? { diff: r.score - c.par, date: r.date || '' } : null;
+    })
+    .filter(Boolean)
+    .sort((a,b) => b.date.localeCompare(a.date)) // most recent first
+    .slice(0, 20); // last 20 rounds
+
+  if (!entries.length) return null;
+
+  const diffs = entries.map(e => e.diff).sort((a,b) => a - b);
+  const take = entries.length >= 20 ? 8 : entries.length >= 10 ? 4 :
+               entries.length >= 6 ? 3 : entries.length >= 4 ? 2 :
+               entries.length >= 3 ? 1 : 1;
+  const best = diffs.slice(0, take);
+  const avg = best.reduce((s,x) => s+x, 0) / best.length;
+  return { index: +(avg * 0.96).toFixed(1), rounds: entries.length, used: take };
+}
+
+function renderRounds() {
+  const ranked = myRanking.map((id, i) => ({
+    course: courses.find(c => c.id === id),
+    pos: i + 1,
+    round: myRounds[id] || {}
+  })).filter(r => r.course);
+  const el = document.getElementById('rankList'), empty = document.getElementById('roundsEmpty');
+  if (!ranked.length) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  el.innerHTML = ranked.map(({course, pos, round}) => `
+    <div class="rank-item" data-course-id="${course.id}" onclick="openModal(${course.id})">
+      <div class="rank-num ${pos<=3?'top':''}">#${pos}</div>
+      <div class="rank-img">${courseImg(course)}</div>
+      <div class="rank-info">
+        <div class="rank-name">${course.name}</div>
+        <div class="rank-meta">
+          ${round.score ? `🏌️ Shot ${round.score}` : course.loc}
+          ${round.favoriteHole ? ` · ❤️ Hole ${round.favoriteHole}` : ''}
+        </div>
+      </div>
+      ${round.score ? `<div class="rank-score" style="font-size:14px">${round.score}</div>` : ''}
+    </div>`).join('');
+  const scores = Object.values(myRounds).map(r => r.score).filter(Boolean);
+  document.getElementById('statRounds').textContent = myRanking.length;
+  document.getElementById('statAvg').textContent = scores.length ?
+    Math.round(scores.reduce((s,x) => s+x, 0) / scores.length) : '—';
+  document.getElementById('statBest').textContent = scores.length ?
+    Math.min(...scores) : '—';
+
+  // Handicap index
+  const hcp = calcHandicap();
+  if (hcp) {
+    const idx = hcp.index;
+    document.getElementById('hcpNum').textContent = idx > 0 ? idx : `+${Math.abs(idx)}`;
+    document.getElementById('hcpSub').textContent =
+      idx <= 0 ? 'Scratch or better 🔥' :
+      idx <= 5 ? 'Low handicapper' :
+      idx <= 12 ? 'Mid handicapper' :
+      idx <= 20 ? 'Bogey golfer' : 'High handicapper';
+    document.getElementById('hcpEmoji').textContent =
+      idx <= 0 ? '🏆' : idx <= 5 ? '🔥' : idx <= 12 ? '⛳' : idx <= 20 ? '🏌️' : '🎯';
+    document.getElementById('hcpRoundsUsed').textContent =
+      `Best ${hcp.used} of ${hcp.rounds} round${hcp.rounds>1?'s':''}`;
+  } else {
+    document.getElementById('hcpNum').textContent = '—';
+    document.getElementById('hcpSub').textContent = 'Log rounds to calculate';
+    document.getElementById('hcpEmoji').textContent = '⛳';
+    document.getElementById('hcpRoundsUsed').textContent = '';
+  }
+}
+
+function renderBucket() {
+  const list=[...myBucket].map(id=>courses.find(c=>c.id===id)).filter(Boolean);
+  const el=document.getElementById('bucketList'), empty=document.getElementById('bucketEmpty');
+  document.getElementById('bucketCount').textContent=list.length+(list.length===1?' course':' courses');
+  if (!list.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  el.innerHTML=list.map(c=>`
+    <div class="bucket-item" data-course-id="${c.id}">
+      <div class="bucket-img">${courseImg(c)}</div>
+      <div class="bucket-info">
+        <div class="bucket-name">${c.name}</div>
+        <div class="bucket-loc">📍 ${c.loc}</div>
+        <div class="course-tags" style="margin:0">${c.tags.slice(0,2).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+      <button class="bucket-remove" onclick="toggleBucket(${c.id},event)">✕</button>
+    </div>`).join('');
+}
+
+function renderFriends() {
+  document.getElementById('friendsRow').innerHTML=friends.map(f=>`<div class="friend-pill"><div class="fp-av" style="background:${f.color}">${f.initials}</div>${f.name}</div>`).join('');
+}
+
+function renderActivity() {
+  document.getElementById('activityFeed').innerHTML=activity.map(a=>{
+    const f=friends[a.friend], c=courses.find(x=>x.id===a.courseId); if(!c) return '';
+    return `<div class="activity-item">
+      <div class="friend-av" style="background:${f.color}">${f.initials}</div>
+      <div class="activity-body">
+        <div class="activity-text"><strong>${f.name}</strong> logged a round${a.score ? ` · 🏌️ shot <strong>${a.score}</strong>` : ''}${a.favoriteHole ? ` · ❤️ Hole ${a.favoriteHole}` : ''}</div>
+        <div class="activity-time">${a.time}</div>
+        <div class="activity-course" data-course-id="${c.id}">
+          <div class="act-img">${courseImg(c)}</div>
+          <div><div class="act-name">${c.name}</div><div style="font-size:12px;color:var(--text-muted)">#${a.rank} on their list</div>${a.note?`<div style="font-size:11px;color:var(--text-muted);margin-top:3px;font-style:italic">"${a.note}"</div>`:''}</div>
+          ${a.score ? `<div class="act-score">${a.score}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='rounds') renderRounds();
+  if (name==='bucket') renderBucket();
+}
+function setFilter(f, btn) {
+  currentFilter=f;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  renderCourseList();
+}
+function applyFilterAndSearch() { renderCourseList(); }
+function toggleBucket(id, e) {
+  e.stopPropagation();
+  myBucket.has(id)?myBucket.delete(id):myBucket.add(id);
+  renderBucket(); renderCourseList();
+  showToast(myBucket.has(id)?'Added to bucket list 🔖':'Removed from bucket list');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(id) {
+  activeCourseId = id;
+  const c = courses.find(x => x.id === id);
+  const saved = myRounds[id];
+  document.getElementById('modalImg').src = c.photo;
+  document.getElementById('modalTitle').textContent = c.name;
+  document.getElementById('modalSub').textContent = `${c.loc} · ${c.type} · Par ${c.par} · ${c.price}`;
+  document.getElementById('strokesInput').value = saved?.score || '';
+  document.getElementById('notesInput').value = saved?.notes || '';
+  // Reset holes
+  selectedHole = saved?.favoriteHole || null;
+  document.querySelectorAll('.hole-btn').forEach((btn, i) => {
+    btn.classList.toggle('selected', i + 1 === selectedHole);
+  });
+  // Update button label
+  const ranked = myRanking.includes(id);
+  document.getElementById('logRoundBtn').textContent = ranked ? 'Update Round ⛳' : 'Log Round & Rank ⛳';
+  document.getElementById('ratingModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('ratingModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function selectHole(n, btn) {
+  if (selectedHole === n) {
+    selectedHole = null;
+    btn.classList.remove('selected');
+  } else {
+    selectedHole = n;
+    document.querySelectorAll('.hole-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
+
