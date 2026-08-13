@@ -1,0 +1,16 @@
+Fairway
+A Beli-style golf course ranking app for the browser. Rate, rank, and track rounds across 127 Bay Area and Northern California golf courses (plus national icons).
+
+Live demo — open fairway.html in any browser, no server needed.
+Features
+Browse 127 courses across San Francisco, East Bay, Peninsula, Marin, Napa, Monterey/Pebble Beach, Sacramento, Tahoe, and more
+Beli-style head-to-head ranking system
+Log rounds with scores, favorite holes, and notes
+Handicap Index calculator (simplified WHS formula)
+Bucket list and favorites
+Works offline, no backend required — all data stays in your browser
+Usage
+Just open fairway.html in a browser. No install, no dependencies.
+License
+CC0 1.0 Universal — public domain. Do whatever you want with it.
+
